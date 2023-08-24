@@ -7,12 +7,15 @@ package edu.escuelaing.arep.app.webserver;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 
 import edu.escuelaing.arep.app.controller.MovieController;
+import edu.escuelaing.arep.app.service.impl.FileServices;
+import edu.escuelaing.arep.app.view.SimpleWebsite;
 import edu.escuelaing.arep.app.view.movieSearchEngine;
 
 public class WebServer {
@@ -23,6 +26,8 @@ public class WebServer {
         ServerSocket serverInstance = null;
         ConcurrentHashMap<String, String> cache = new ConcurrentHashMap<>();
         MovieController movieController = new MovieController();
+        FileServices fileServices = new FileServices();
+        SimpleWebsite simpleWebsite = new SimpleWebsite();
 
         try {
             serverInstance = new ServerSocket(16000);
@@ -81,10 +86,34 @@ public class WebServer {
                 clientResponseWriter.println("HTTP/1.1 200 OK");
                 clientResponseWriter.println("Content-Type: application/json");
                 clientResponseWriter.println("Content-Length: " + movieInformation.length());
-                clientResponseWriter.println();
-                clientResponseWriter.println(movieInformation);
+
             } else if (resource.equals("home") || resource.equals("") || resource.equals(" ")) {
                 clientResponseWriter.println(movieSearchEngine.getHomePage());
+            } else if (resource.equals("file")) {
+                byte[] response = fileServices.readFileAsBytes(movieName);
+                clientResponseWriter.println("HTTP/1.1 200 OK");
+                clientResponseWriter.println(fileServices.getContentType(movieName));
+                clientResponseWriter.println("Content-Length: " + response.length);
+                clientResponseWriter.println();
+                clientResponseWriter.flush(); // Asegura que todas las cabeceras se envíen
+
+                try (OutputStream os = clientConnection.getOutputStream()) {
+                    os.write(response); // Envía los bytes directamente al cliente
+                } catch (IOException e) {
+                    System.out.println("Error sending file response: " + e.getMessage());
+                }
+            } else if (resource.equals("homepage")) {
+                byte[] response = fileServices.readFileAsBytes("homepage.html");
+                clientResponseWriter.println("HTTP/1.1 200 OK");
+                clientResponseWriter.println("Content-Type: text/html");
+                clientResponseWriter.println();
+                clientResponseWriter.flush();
+                try (OutputStream os = clientConnection.getOutputStream()) {
+                    os.write(response); // Envía los bytes directamente al cliente
+                } catch (IOException e) {
+                    System.out.println("Error sending file response: " + e.getMessage());
+                }
+
             } else {
                 System.out.println("Invalid resource\n");
             }

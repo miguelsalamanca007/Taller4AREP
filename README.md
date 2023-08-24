@@ -1,27 +1,18 @@
-# Movie Search Engine
+# ECI Web Server
 
-Movie Search Engine application, a Java-based solution that allows users to effortlessly retrieve details about movies. Powered by the free OMDb API, the program optimizes resource utilization with a built-in caching mechanism, significantly reducing redundant queries. Its architecture features an asynchronous, browser-based client interface using JSON, seamless communication via HTTP, and a user-friendly design crafted using HTML and JavaScript. The project is managed using Maven, Git, and GitHub.
-
+ECI Web Server application, a simple web server that can be used to store and serve static files, such as HTML, CSS, JavaScript, and images. Along with the web server, we also provide a basic web application that utilizes these static files to display an interactive web page.
 
 ### Architecture
 
-The Movie Search Engine is divided in 4 main components:
+The ECI Web Server application is divided in 4 main components:
 
 #### Web Server with REST API Facade
 
 The web server is divided in 3 components, controllers, used as a intermediary for the webserver and service classes, service, providing the necessary movie services for the app to work, and the webserver, providing the support for communication with the client.
 
-#### External REST API
+####  Java Test Client
 
-External web service that provides details about the movies queried.
-
-#### JS Web Client
-
-Web client serves as the graphic user interface for the application
-
-#### Concurrent Java Test Client
-
-A client responsible for testing the concurrency of the applications web server
+A client responsible for testing the application web server
 
 ### Prerequisites
 
@@ -35,7 +26,7 @@ To run the software you will need to have these installed in your machine:
 Start cloning the GitHub repository, you can use the following command to do so:
 
 ```
-git clone https://github.com/miguelsalamanca007/Taller1AREP.git
+git clone https://github.com/miguelsalamanca007/Taller2AREP.git
 ```
 
 Locate yourself in the directory you downloaded the repository in
@@ -68,7 +59,7 @@ java -cp .\target\primer-taller-1.0-SNAPSHOT.jar edu.escuelaing.arep.app.webserv
 Now you can access the program from your favorite internet browser on port 16000, for that, enter the next URL in the browser:
 
 ```
-http://localhost:16000/
+http://localhost:16000/homepage
 ```
 
 If you have done everything correctly, the program should look like this:
