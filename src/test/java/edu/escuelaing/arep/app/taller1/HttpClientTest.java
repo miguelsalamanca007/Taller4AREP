@@ -1,12 +1,11 @@
 package edu.escuelaing.arep.app.taller1;
-
 import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import org.junit.Test;
 
 import edu.escuelaing.arep.app.controller.MovieController;
 
-public class MovieServiceTest{
+public class HttpClientTest{
 
     private MovieController movieController = new MovieController();
 
@@ -18,7 +17,7 @@ public class MovieServiceTest{
     public void testMovieServiceConcurrentRequests() throws InterruptedException {
         int numberOfThreads = 10;
         Thread[] threads = new Thread[numberOfThreads];
-    
+
         for (int i = 0; i < numberOfThreads; i++) {
             threads[i] = new Thread(new Runnable() {
                 @Override
@@ -33,7 +32,7 @@ public class MovieServiceTest{
             });
             threads[i].start();
         }
-    
+
         for (Thread thread : threads) {
             thread.join();
         }

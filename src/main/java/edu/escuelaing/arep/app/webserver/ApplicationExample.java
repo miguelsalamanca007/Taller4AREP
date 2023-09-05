@@ -40,7 +40,7 @@ public class ApplicationExample {
             response.setTypeForResponse("json");
             return "{\n" +
                     "  \"id\": 12345,\n" +
-                    "  \"nombre\": \"Juan Pérez\",\n" +
+                    "  \"nombre\": \"Juan Perez\",\n" +
                     "  \"correoElectronico\": \"juan.perez@example.com\",\n" +
                     "  \"edad\": 30,\n" +
                     "  \"direccion\": {\n" +
@@ -49,7 +49,7 @@ public class ApplicationExample {
                     "    \"codigoPostal\": \"12345\"\n" +
                     "  },\n" +
                     "  \"intereses\": [\n" +
-                    "    \"Tecnología\",\n" +
+                    "    \"Tecnologia\",\n" +
                     "    \"Viajes\",\n" +
                     "    \"Deportes\"\n" +
                     "  ]\n" +

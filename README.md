@@ -1,6 +1,6 @@
-# ECI Web Server
+# ECI MicroFramework
 
-ECI Web Server application, a simple web server that can be used to store and serve static files, such as HTML, CSS, JavaScript, and images. Along with the web server, we also provide a basic web application that utilizes these static files to display an interactive web page.
+Web Server that supports functionality similar to Spark. The application allows the registration of GET and POST services using lambda functions. Built with the basic Java API.
 
 ### Architecture
 
@@ -26,7 +26,7 @@ To run the software you will need to have these installed in your machine:
 Start cloning the GitHub repository, you can use the following command to do so:
 
 ```
-git clone https://github.com/miguelsalamanca007/Taller2AREP.git
+git clone https://github.com/miguelsalamanca007/Taller3AREP.git
 ```
 
 Locate yourself in the directory you downloaded the repository in
@@ -51,20 +51,15 @@ mvn test
 
 ## Running the program
 
-You have already installed the program in the Installing section, now you just need to run the following command  
+Run the following command to clean any old artifacts and compile and install the new artifacts
 ```
-java -cp .\target\primer-taller-1.0-SNAPSHOT.jar edu.escuelaing.arep.app.webserver.WebServer
+mvn clean install
 ```
-
-Now you can access the program from your favorite internet browser on port 16000, for that, enter the next URL in the browser:
+Now run the program using the command:
+```
+java -cp .\target\primer-taller-1.0-SNAPSHOT.jar edu.escuelaing.arep.app.webserver.ApplicationExample
 
 ```
-http://localhost:16000/homepage
-```
-
-If you have done everything correctly, the program should look like this:
-
-![image](demo.png)
 
 ## Built With
 

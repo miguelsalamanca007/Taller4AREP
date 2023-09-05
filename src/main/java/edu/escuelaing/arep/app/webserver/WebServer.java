@@ -11,17 +11,27 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
 import edu.escuelaing.arep.app.service.HTTPOperation;
+import edu.escuelaing.arep.app.service.impl.FileServices;
 import edu.escuelaing.arep.app.service.impl.HttpResponse;
 
 public class WebServer {
 
     private static WebServer _instance = new WebServer();
+    private FileServices fileServices = new FileServices();
 
     private HashMap<String, HTTPOperation> operations = new HashMap<>();
 
     private HashMap<String, HttpResponse> responses = new HashMap<>();
+
+    private ArrayList<String> files = new ArrayList<String>() {{
+        add("/homepage.html");
+        add("/insis.jpg");
+        add("/scripts.js");
+        add("/styles.css");
+    }};
 
     public static WebServer getInstance() {
         return _instance;
@@ -58,14 +68,11 @@ public class WebServer {
             }
 
             PrintWriter clientResponseWriter = new PrintWriter(clientConnection.getOutputStream(), true);
-            BufferedReader clientRequestReader = new BufferedReader(
-                    new InputStreamReader(clientConnection.getInputStream()));
+            BufferedReader clientRequestReader = new BufferedReader(new InputStreamReader(clientConnection.getInputStream()));
 
             String inputLine;
             String resource = "";
             String method = "";
-
-            HttpResponse response = new HttpResponse();
 
             boolean isFirstLine = true;
 
@@ -77,9 +84,8 @@ public class WebServer {
                 if (isFirstLine) {
                     System.out.println("Input line " + inputLine);
                     method = inputLine.split("/")[0].split(" ")[0];
-                    resource = inputLine.split("/")[1].split(" ")[0];
+                    resource = "/" + inputLine.split("/")[1].split(" ")[0];
                     isFirstLine = false;
-                    System.out.println("METHOD IS: " + method);
                 }
 
                 if (inputLine.trim().isEmpty()) {
@@ -111,30 +117,26 @@ public class WebServer {
             // El cuerpo de la solicitud se encuentra en requestBody.toString()
             String requestBodyContent = requestBody.toString();
 
-            System.out.println("The Request Body is:" + requestBodyContent);
-            System.out.println("The Content-Length is: " + contentLength);
-
-
-            System.out.println("GOT OUT OF THE WHILE LOOP");
+            System.out.println("Resource: "+resource+" Method: "+method);
 
             // Handle different types of resources and responses.
-            if (operations.containsKey("/"+resource)){
+            if (operations.containsKey(resource)){
 
                 System.out.println("Entered containsKey");
 
                 if(method.equals("GET")){
-                    response.setStatus("HTTP/1.1 200 OK");
-                    response.setBody(operations.get("/"+resource).handle("", response));
-                    clientResponseWriter.println(response.getStatus());
-                    clientResponseWriter.println(response.type());
-                    clientResponseWriter.println();
-                    clientResponseWriter.println(response.getBody());
-
-                } else if (method.equals("POST")){
-                    System.out.println("Input Line Is: "+inputLine);
                     HttpResponse newResponse = new HttpResponse();
                     newResponse.setStatus("HTTP/1.1 200 OK");
-                    newResponse.setBody(operations.get("/"+resource).handle("", newResponse));
+                    newResponse.setBody(operations.get(resource).handle("", newResponse));
+                    clientResponseWriter.println(newResponse.getStatus());
+                    clientResponseWriter.println(newResponse.type());
+                    clientResponseWriter.println();
+                    clientResponseWriter.println(newResponse.getBody());
+
+                } else if (method.equals("POST")){
+                    HttpResponse newResponse = new HttpResponse();
+                    newResponse.setStatus("HTTP/1.1 200 OK");
+                    newResponse.setBody(operations.get(resource).handle("", newResponse));
                     clientResponseWriter.println(newResponse.getStatus());
                     clientResponseWriter.println(newResponse.type());
                     clientResponseWriter.println();
@@ -142,8 +144,39 @@ public class WebServer {
                     responses.put("/"+resource, newResponse);
                 }
 
+            } else if (files.contains(resource)) {
+
+                byte[] response = fileServices.readFileAsBytes(resource.replace("/",""));
+                clientResponseWriter.println("HTTP/1.1 200 OK");
+                clientResponseWriter.println(fileServices.getContentType(resource.replace("/","")));
+                clientResponseWriter.println("Content-Length: " + response.length);
+                clientResponseWriter.println();
+                clientResponseWriter.flush();
+
+                try (OutputStream os = clientConnection.getOutputStream()) {
+                    os.write(response);
+                } catch (IOException e) {
+                    System.out.println("Error sending file response: " + e.getMessage());
+                }
+
             } else {
-                System.out.println("Invalid resource\n");
+                HttpResponse newResponse = new HttpResponse();
+                newResponse.setStatus("HTTP/1.1 404 Not Found");
+                newResponse.setTypeForResponse("Content-type: text/html");
+                newResponse.setBody("<!DOCTYPE html>\n" +
+                        "<html>\n" +
+                        "<head>\n" +
+                        "    <title>Error 404 - No encontrado</title>\n" +
+                        "</head>\n" +
+                        "<body>\n" +
+                        "    <h1>Error 404 - Página no encontrada</h1>\n" +
+                        "    <p>La página que estás buscando no existe en este servidor.</p>\n" +
+                        "</body>\n" +
+                        "</html>");
+                clientResponseWriter.println(newResponse.getStatus());
+                clientResponseWriter.println(newResponse.type());
+                clientResponseWriter.println();
+                clientResponseWriter.println(newResponse.getBody());
             }
 
             // Close connections.
