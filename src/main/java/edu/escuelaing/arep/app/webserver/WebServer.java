@@ -11,23 +11,31 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.ConcurrentHashMap;
-
-import edu.escuelaing.arep.app.controller.MovieController;
-import edu.escuelaing.arep.app.service.impl.FileServices;
-import edu.escuelaing.arep.app.view.SimpleWebsite;
-import edu.escuelaing.arep.app.view.movieSearchEngine;
+import java.util.HashMap;
+import edu.escuelaing.arep.app.service.HTTPOperation;
+import edu.escuelaing.arep.app.service.impl.HttpResponse;
 
 public class WebServer {
 
-    public static void main(String[] args) throws IOException {
+    private static WebServer _instance = new WebServer();
+
+    private HashMap<String, HTTPOperation> operations = new HashMap<>();
+
+    private HashMap<String, HttpResponse> responses = new HashMap<>();
+
+    public static WebServer getInstance() {
+        return _instance;
+    }
+
+
+    public void registerOperation(String path, HTTPOperation operation){
+        operations.put(path, operation);
+    }
+
+    public void run() throws IOException {
 
         // Set up server resources and components.
         ServerSocket serverInstance = null;
-        ConcurrentHashMap<String, String> cache = new ConcurrentHashMap<>();
-        MovieController movieController = new MovieController();
-        FileServices fileServices = new FileServices();
-        SimpleWebsite simpleWebsite = new SimpleWebsite();
 
         try {
             serverInstance = new ServerSocket(16000);
@@ -54,64 +62,84 @@ public class WebServer {
                     new InputStreamReader(clientConnection.getInputStream()));
 
             String inputLine;
-            String movieInformation = "";
             String resource = "";
-            String movieName = "";
+            String method = "";
+
+            HttpResponse response = new HttpResponse();
 
             boolean isFirstLine = true;
 
             // Process the client request.
-            while ((inputLine = clientRequestReader.readLine()) != null) {
+            int contentLength = -1; // Variable para el contenido de longitud
+            StringBuilder requestBody = new StringBuilder();
 
+            while ((inputLine = clientRequestReader.readLine()) != null) {
                 if (isFirstLine) {
                     System.out.println("Input line " + inputLine);
+                    method = inputLine.split("/")[0].split(" ")[0];
                     resource = inputLine.split("/")[1].split(" ")[0];
-                    movieName = inputLine.split("/")[2].split(" ")[0];
                     isFirstLine = false;
+                    System.out.println("METHOD IS: " + method);
                 }
 
-                if (!clientRequestReader.ready()) {
+                if (inputLine.trim().isEmpty()) {
+                    // Si la línea está vacía, se asume que la solicitud ha terminado.
+                    break;
+                }
+
+                if (inputLine.startsWith("Content-Length:")) {
+                    contentLength = Integer.parseInt(inputLine.split(":")[1].trim());
+                }
+
+                if (contentLength != -1) {
+                    // Leer el cuerpo de la solicitud y guardarlo en requestBody
+                    char[] buffer = new char[1024]; // Tamaño del búfer para lectura
+                    int bytesRead;
+                    while ((bytesRead = clientRequestReader.read(buffer, 0, Math.min(buffer.length, contentLength))) > 0) {
+                        requestBody.append(buffer, 0, bytesRead);
+                        contentLength -= bytesRead;
+
+                        if (contentLength == 0) {
+                            // Se ha leído todo el cuerpo de la solicitud
+                            break;
+                        }
+                    }
                     break;
                 }
             }
 
+            // El cuerpo de la solicitud se encuentra en requestBody.toString()
+            String requestBodyContent = requestBody.toString();
+
+            System.out.println("The Request Body is:" + requestBodyContent);
+            System.out.println("The Content-Length is: " + contentLength);
+
+
+            System.out.println("GOT OUT OF THE WHILE LOOP");
+
             // Handle different types of resources and responses.
-            if (resource.equals("movie")) {
-                if (cache.containsKey(movieName)) {
-                    movieInformation = cache.get(movieName);
-                } else {
-                    movieInformation = movieController.getMovieByName(movieName);
-                    cache.put(movieName, movieInformation);
-                }
-                clientResponseWriter.println("HTTP/1.1 200 OK");
-                clientResponseWriter.println("Content-Type: application/json");
-                clientResponseWriter.println("Content-Length: " + movieInformation.length());
+            if (operations.containsKey("/"+resource)){
 
-            } else if (resource.equals("home") || resource.equals("") || resource.equals(" ")) {
-                clientResponseWriter.println(movieSearchEngine.getHomePage());
-            } else if (resource.equals("file")) {
-                byte[] response = fileServices.readFileAsBytes(movieName);
-                clientResponseWriter.println("HTTP/1.1 200 OK");
-                clientResponseWriter.println(fileServices.getContentType(movieName));
-                clientResponseWriter.println("Content-Length: " + response.length);
-                clientResponseWriter.println();
-                clientResponseWriter.flush(); // Asegura que todas las cabeceras se envíen
+                System.out.println("Entered containsKey");
 
-                try (OutputStream os = clientConnection.getOutputStream()) {
-                    os.write(response); // Envía los bytes directamente al cliente
-                } catch (IOException e) {
-                    System.out.println("Error sending file response: " + e.getMessage());
-                }
-            } else if (resource.equals("homepage")) {
-                byte[] response = fileServices.readFileAsBytes("homepage.html");
-                clientResponseWriter.println("HTTP/1.1 200 OK");
-                clientResponseWriter.println("Content-Type: text/html");
-                clientResponseWriter.println();
-                clientResponseWriter.flush();
-                try (OutputStream os = clientConnection.getOutputStream()) {
-                    os.write(response); // Envía los bytes directamente al cliente
-                } catch (IOException e) {
-                    System.out.println("Error sending file response: " + e.getMessage());
+                if(method.equals("GET")){
+                    response.setStatus("HTTP/1.1 200 OK");
+                    response.setBody(operations.get("/"+resource).handle("", response));
+                    clientResponseWriter.println(response.getStatus());
+                    clientResponseWriter.println(response.type());
+                    clientResponseWriter.println();
+                    clientResponseWriter.println(response.getBody());
+
+                } else if (method.equals("POST")){
+                    System.out.println("Input Line Is: "+inputLine);
+                    HttpResponse newResponse = new HttpResponse();
+                    newResponse.setStatus("HTTP/1.1 200 OK");
+                    newResponse.setBody(operations.get("/"+resource).handle("", newResponse));
+                    clientResponseWriter.println(newResponse.getStatus());
+                    clientResponseWriter.println(newResponse.type());
+                    clientResponseWriter.println();
+                    clientResponseWriter.println(newResponse.getBody());
+                    responses.put("/"+resource, newResponse);
                 }
 
             } else {
