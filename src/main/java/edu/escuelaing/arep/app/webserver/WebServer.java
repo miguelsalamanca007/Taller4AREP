@@ -9,10 +9,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+
+import edu.escuelaing.arep.app.annotation.RequestMapping;
 import edu.escuelaing.arep.app.service.HTTPOperation;
 import edu.escuelaing.arep.app.service.impl.FileServices;
 import edu.escuelaing.arep.app.service.impl.HttpResponse;
@@ -23,6 +28,8 @@ public class WebServer {
     private FileServices fileServices = new FileServices();
 
     private HashMap<String, HTTPOperation> operations = new HashMap<>();
+
+    private HashMap<String, Method> methods = new HashMap<>();
 
     private HashMap<String, HttpResponse> responses = new HashMap<>();
 
@@ -42,7 +49,19 @@ public class WebServer {
         operations.put(path, operation);
     }
 
-    public void run() throws IOException {
+    public void run(List<String> args) throws IOException, ClassNotFoundException, InvocationTargetException, IllegalAccessException {
+
+        for (String className : args) {
+            // Cargar clase con forName
+            Class<?> c = Class.forName(className);
+            Method[] classMethos = c.getMethods();
+            for (Method method : classMethos) {  // Extraer una instancia del método
+                if (method.isAnnotationPresent(RequestMapping.class)) { // Extraer métodos con @RequestMapping
+                    String path = method.getAnnotation(RequestMapping.class).value(); // Extraer el valor del path (value de la anotación)
+                    methods.put(path, method); // Poner en la tabla el método con llave path
+                }
+            }
+        }
 
         // Set up server resources and components.
         ServerSocket serverInstance = null;
@@ -159,6 +178,9 @@ public class WebServer {
                     System.out.println("Error sending file response: " + e.getMessage());
                 }
 
+            } else if (methods.containsKey(resource)) {
+                clientResponseWriter.println(methods.get(resource).invoke(null));
+                System.out.println("Entered a component method");
             } else {
                 HttpResponse newResponse = new HttpResponse();
                 newResponse.setStatus("HTTP/1.1 404 Not Found");

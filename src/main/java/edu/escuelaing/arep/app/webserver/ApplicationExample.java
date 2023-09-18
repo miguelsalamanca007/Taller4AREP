@@ -1,9 +1,17 @@
 package edu.escuelaing.arep.app.webserver;
 
+import edu.escuelaing.arep.app.annotation.Component;
+
+import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 
 public class ApplicationExample {
-    public static void main(String[] args) throws IOException{
+    public static void main(String[] args) throws IOException, ClassNotFoundException, InvocationTargetException, IllegalAccessException {
         WebServer serverInstance = WebServer.getInstance();
         serverInstance.registerOperation("/prueba", (request, response) -> {response.setTypeForResponse("html");
         return request;});
@@ -87,6 +95,30 @@ public class ApplicationExample {
 
 
 
-        serverInstance.run();
+        serverInstance.run(getComponents());
     }
+
+    public static List<String> getComponents() throws IOException, ClassNotFoundException {
+        String path = "edu/escuelaing/arep/app/webserver";
+        List<String> componentClasses = new ArrayList<>();
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        Enumeration<URL> resources = classLoader.getResources(path);
+        while (resources.hasMoreElements()) {
+            URL resource = resources.nextElement();
+            File directory = new File(resource.getFile());
+            File[] files = directory.listFiles();
+            for (File file : files) {
+                String fileName = file.getName();
+                if (file.getName().endsWith(".class")) {
+                    String className = fileName.substring(0, fileName.length() - 6);
+                    Class<?> _class = Class.forName(path.replace("/", ".") + "." + className);
+                    if (_class.isAnnotationPresent(Component.class)) {
+                        componentClasses.add(_class.getName());
+                    }
+                }
+            }
+        }
+        return componentClasses;
+    }
+
 }
